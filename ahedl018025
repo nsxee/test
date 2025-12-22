@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>Flow Learning 流動式學習平台</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* 全域設定：使用 Segoe UI 營造現代感 */
+*{box-sizing:border-box;font-family:'Segoe UI', 'Microsoft JhengHei', sans-serif;margin:0;padding:0}
+body{background:#f0f2f5;color:#333; line-height: 1.6;}
+
+/* 頂部 Header 設計 */
+header{background:#fff;padding:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05); border-bottom: 3px solid #007bff;}
+header h1{font-size:26px;margin-bottom:5px; color: #2c3e50; font-weight: 700;}
+header p{color:#666; font-size: 14px; letter-spacing: 1px;}
+
+/* 導覽列 Nav 設計 (Sticky) */
+nav{background:#fff;padding:12px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,0.05); position:sticky; top:0; z-index:100;}
+nav a{margin:0 15px;cursor:pointer;color:#555;text-decoration:none;font-weight:600; font-size: 15px; transition: color 0.3s;}
+nav a:hover{color:#007bff}
+
+/* 頁面容器 */
+.page{display:none;max-width:800px;margin:25px auto;padding:0 20px;}
+
+/* 卡片設計 (Card UI) */
+.card{background:#fff;padding:25px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);margin-bottom:20px; transition: transform 0.2s, box-shadow 0.2s;}
+.card:hover{transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.08);}
+
+/* 文章列表樣式 */
+.article-item h3{color:#2c3e50;cursor:pointer; margin-bottom: 8px; font-size: 20px;}
+.article-item h3:hover{color: #007bff;}
+.article-desc {color:#666; font-size:14px; margin-bottom: 10px;}
+
+/* 輸入框與按鈕 */
+input,textarea{width:100%;padding:12px;margin-top:10px;border-radius:8px;border:1px solid #ddd; font-size:16px; outline: none; transition: border 0.3s;}
+input:focus{border-color: #007bff;}
+button{width:100%; padding:12px;margin-top:10px;border-radius:8px; background:#007bff;color:#fff;border:none;cursor:pointer; font-weight:bold; font-size: 16px; transition: background 0.3s;}
+button:hover{background:#0056b3}
+button.secondary {background: #e9ecef; color: #495057;}
+button.secondary:hover {background: #dee2e6;}
+button.outline {background: transparent; border: 1px solid #007bff; color: #007bff;}
+button.outline:hover {background: #f0f8ff;}
+
+/* 儀表板數據格 */
+.stat-grid {display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;}
+.stat-box {background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #e9ecef;}
+.stat-box h4 {font-size: 13px; color: #666; margin-bottom: 5px;}
+.stat-box span {font-size: 24px; font-weight: bold; color: #007bff;}
+
+/* 學習檔案表格 */
+.history-table {width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;}
+.history-table th {text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #666;}
+.history-table td {padding: 10px; border-bottom: 1px solid #eee; color: #444;}
+.history-table tr:last-child td {border-bottom: none;}
+
+/* 進度條 */
+.progress-container {margin-bottom: 25px;}
+.progress-bar {background: #e9ecef; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 8px;}
+.progress-fill {background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: 0%; transition: width 1s ease-in-out;}
+
+/* 聊天與留言區域 */
+#detailComments, #chatBox{height:350px;overflow-y:auto;border:1px solid #eee;padding:15px;border-radius:8px;background:#fafafa; margin-bottom: 10px;}
+.chat-msg {margin-bottom: 12px; font-size: 15px;}
+.chat-msg strong {color: #007bff; margin-right: 5px;}
+.my-msg {text-align: right;}
+.my-msg strong {color: #28a745;}
+.comment {padding: 12px 0; border-bottom: 1px solid #eee;}
+
+/* 使用者狀態 */
+#userStatus {position: absolute; top: 25px; right: 25px; font-size: 14px; color: #888; font-weight: 500;}
+
+/* RWD 微調 */
+@media (max-width: 600px) {
+    #userStatus {display: none;} /* 手機版隱藏右上角狀態，避免擋住標題 */
+    nav a {margin: 0 8px; font-size: 14px;}
+    .stat-grid {grid-template-columns: 1fr;}
+}
+
+/* 登入註冊切換 */
+.auth-toggle {text-align: center; margin-top: 15px; font-size: 14px;}
+.auth-toggle span {color: #007bff; cursor: pointer; text-decoration: underline;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Flow Learning 藥物學習平台</h1>
+  <p>流動式學習 × 知識共享 × 社群共創</p>
+  <div id="userStatus"></div>
+</header>
+
+<nav>
+  <a onclick="showPage('explore')">📖 課程瀏覽</a>
+  <a onclick="showPage('chatroom')">💬 社群聊天室</a>
+  <a onclick="showPage('account')">📊 個人儀表板</a>
+  <a onclick="showPage('login')">👤 登入/註冊</a>
+</nav>
+
+<!-- 1. 登入/註冊頁 (Login/Register) -->
+<div id="login" class="page" style="display:block;">
+  <!-- 登入表單 -->
+  <div id="loginForm" class="card" style="max-width:400px; margin: 40px auto;">
+    <h2 style="text-align:center; margin-bottom:20px; color:#2c3e50;">會員登入</h2>
+    <input id="loginUser" placeholder="輸入帳號">
+    <input id="loginPass" type="password" placeholder="輸入密碼">
+    <button onclick="performLogin()">登入系統</button>
+    <div class="auth-toggle">
+        還沒有帳號？ <span onclick="toggleAuthMode('register')">立即註冊</span>
+    </div>
+  </div>
+
+  <!-- 註冊表單 (預設隱藏) -->
+  <div id="registerForm" class="card" style="max-width:400px; margin: 40px auto; display:none;">
+    <h2 style="text-align:center; margin-bottom:20px; color:#28a745;">新會員註冊</h2>
+    <p style="font-size:13px; color:#666; margin-bottom:10px;">註冊後將為您建立專屬學習檔案與歷程紀錄。</p>
+    <input id="regUser" placeholder="設定帳號">
+    <input id="regPass" type="password" placeholder="設定密碼">
+    <button onclick="performRegister()" style="background:#28a745;">確認註冊</button>
+    <div class="auth-toggle">
+        已有帳號？ <span onclick="toggleAuthMode('login')">返回登入</span>
+    </div>
+  </div>
+</div>
+
+<!-- 2. 個人儀表板 (Dashboard) -->
+<div id="account" class="page">
+  <div class="card">
+    <h2 style="margin-bottom: 20px; border-left: 5px solid #007bff; padding-left: 10px;">個人學習歷程檔案</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <p>學員：<span id="accountName" style="font-weight:bold; font-size: 18px;">訪客</span></p>
+        <span style="font-size:12px; color:#888; background:#eee; padding:3px 8px; border-radius:10px;">ID: <span id="accountId">--</span></span>
+    </div>
+    
+    <!-- 數據概覽 -->
+    <div class="stat-grid">
+        <div class="stat-box">
+            <h4>已完成單元</h4>
+            <span id="readCount">0</span> 篇
+        </div>
+        <div class="stat-box">
+            <h4>總學習時間</h4>
+            <span id="totalTime">0</span> 分鐘
+        </div>
+        <div class="stat-box">
+            <h4>社群貢獻</h4>
+            <span id="contributionScore">Lv. 1</span>
+        </div>
+    </div>
+
+    <!-- 進度條 -->
+    <div class="progress-container">
+        <h4 style="color:#444;">本週學習目標達成率 (<span id="progressText">0</span>%)</h4>
+        <div class="progress-bar"><div id="progressBar" class="progress-fill" style="width: 0%;"></div></div>
+    </div>
+
+    <!-- 學習檔案紀錄 (新增功能) -->
+    <h3 style="font-size: 18px; margin-bottom: 10px; color: #2c3e50;">📚 學習檔案紀錄 (Portfolio)</h3>
+    <div style="overflow-x:auto;">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th width="50%">單元主題</th>
+                    <th width="20%">學習日期</th>
+                    <th width="30%">學習時長</th>
+                </tr>
+            </thead>
+            <tbody id="historyList">
+                <tr><td colspan="3" style="text-align:center; color:#999;">尚未開始學習</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+    <button onclick="performLogout()" style="background: #dc3545;">登出系統</button>
+  </div>
+</div>
+
+<!-- 3. 社群聊天室 (Chatroom) -->
+<div id="chatroom" class="page">
+    <div class="card">
+        <h2 style="margin-bottom: 5px; border-left: 5px solid #28a745; padding-left: 10px;">社群即時聊天室</h2>
+        <p style="font-size: 13px; color: #888; margin-bottom: 15px;">🟢 目前有 12 位學習者與藥師在線</p>
+        
+        <div id="chatBox">
+            <div class="chat-msg"><strong>系統機器人：</strong> 歡迎來到 Flow Learning 討論區！請保持友善交流。</div>
+            <div class="chat-msg"><strong>小明：</strong> 請問這裡有人修過藥理學嗎？關於抗生素的問題想請教。</div>
+            <div class="chat-msg"><strong>藥師小幫手：</strong> 你好！我是駐站藥師，抗生素切記要按療程服用完畢，不能覺得症狀好了就停藥喔。</div>
+            <div class="chat-msg"><strong>小美：</strong> 原來如此，長知識了！</div>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input id="chatInput" placeholder="輸入訊息參與討論..." style="margin-top:0;">
+            <button onclick="sendChat()" style="width: 100px; margin-top:0;">發送</button>
+        </div>
+    </div>
+</div>
+
+<!-- 4. 課程瀏覽 (Explore) -->
+<div id="explore" class="page">
+  <div id="articleList"></div>
+</div>
+
+<!-- 5. 內容詳情 (Detail) -->
+<div id="detail" class="page">
+  <div class="card">
+    <button class="secondary" onclick="exitArticle()" style="width:auto; padding: 5px 20px; margin-bottom: 20px;">← 結束閱讀並記錄時間</button>
+    <h2 id="detailTitle" style="color: #007bff; margin-bottom: 15px; font-size: 24px;"></h2>
+    <div style="height: 4px; width: 50px; background: #007bff; margin-bottom: 20px;"></div>
+    <p id="detailContent" style="line-height:1.8; color: #444; font-size: 17px; white-space: pre-line;"></p>
+  </div>
+
+  <div class="card">
+    <h3>共創留言板</h3>
+    <p style="color:#888; font-size:13px; margin-bottom:15px;">您的見解將成為社群知識的一部分</p>
+    <div id="detailComments"></div>
+    <input id="commentInput" placeholder="分享你的看法..." onkeydown="addComment(event)">
+  </div>
+</div>
+
+<script>
+/* 核心系統邏輯 
+   包含：模擬資料庫(LocalStorage)、學習計時器、會員驗證
+*/
+
+// 全域變數
+let currentUserData = null; // 當前登入的使用者完整資料物件
+let currentArticle = null;
+let learningTimer = null;   // 計時器
+let sessionStartTime = 0;   // 本次閱讀開始時間
+
+/* 模擬文章資料庫 */
+const articles = [
+  { 
+    id: 1, 
+    title: "感冒正確用藥知多少", 
+    content: "【核心觀念】\n食品藥物管理署(簡稱:食藥署)提醒民眾，市面上之綜合感冒藥含有多種成分，可能有止痛退燒、抗組織胺等。但綜合感冒藥只能緩解症狀，不能預防感冒。\n\n【重要提醒】\n1. 成人在充分休息、補充水分後，大多會在一到二個禮拜內自行痊癒。\n2. 民眾不可自行增加綜合感冒藥劑量或是併用多種感冒藥，反而可能會增加副作用。\n3. 連續假日開車時，應注意部分綜合感冒藥會造成嗜睡。\n\n(資料來源：衛福部食藥署)", 
+    comments: ["我覺得多喝水最重要，藥只是輔助。", "長輩常常以為吃多一點好得快，真的要宣導！"] 
+  },
+  { 
+    id: 2, 
+    title: "心血管用藥注意事項", 
+    content: "【常見藥物分類】\n心血管疾病患者除了注重日常保養，還需經由醫師診斷，給予預防與治療的相關藥物。\n\n1. 抗心絞痛藥物：主要用於心絞痛的治療及預防，鬆弛心臟血管。\n2. 鈣離子管道阻斷劑：擴張冠狀動脈、周邊動脈。\n\n【服用須知】\n服藥期間應避免食用葡萄柚及其相關食品，以免發生交互作用。若有眩暈、嗜睡情況，要避免開車。", 
+    comments: ["葡萄柚真的很容易被忽略，要注意！"] 
+  },
+  { 
+    id: 3, 
+    title: "抗生素使用的五大迷思", 
+    content: "【迷思一：症狀好了就可以停藥？】\n錯！抗生素必須按照醫師指示的療程吃完，否則細菌容易產生抗藥性，下次再生病就更難治療了。\n\n【迷思二：抗生素就是消炎藥？】\n這也是常見誤解。抗生素是殺細菌的，消炎藥是抗發炎的，兩者機制完全不同。", 
+    comments: ["真的很多人會亂停藥，以為好了就不吃。", "原來消炎藥跟抗生素不一樣！"] 
+  }
+];
+
+/* --- 資料庫與會員系統 (LocalStorage) --- */
+
+// 從 LocalStorage 取得所有使用者資料，若無則初始化
+function getUsersDB() {
+    const db = localStorage.getItem('flowLearningDB');
+    return db ? JSON.parse(db) : {};
+}
+
+// 儲存使用者資料回 LocalStorage
+function saveUsersDB(db) {
+    localStorage.setItem('flowLearningDB', JSON.stringify(db));
+}
+
+// 註冊功能
+function performRegister() {
+    const user = document.getElementById("regUser").value.trim();
+    const pass = document.getElementById("regPass").value.trim();
+
+    if (!user || !pass) {
+        alert("請輸入完整的帳號與密碼！");
+        return;
+    }
+
+    const db = getUsersDB();
+    if (db[user]) {
+        alert("此帳號已被註冊，請更換帳號或直接登入。");
+        return;
+    }
+
+    // 建立新使用者結構
+    db[user] = {
+        password: pass,
+        registerDate: new Date().toLocaleDateString(),
+        learningHistory: [], // 學習檔案：紀錄看過的文章
+        totalLearningSeconds: 0, // 總學習秒數
+        contributionLevel: 1
+    };
+    
+    saveUsersDB(db);
+    alert("註冊成功！請使用新帳號登入。");
+    toggleAuthMode('login');
+}
+
+// 登入功能
+function performLogin() {
+    const user = document.getElementById("loginUser").value.trim();
+    const pass = document.getElementById("loginPass").value.trim();
+    
+    const db = getUsersDB();
+
+    // 簡單的驗證邏輯
+    if (db[user] && db[user].password === pass) {
+        currentUserData = { ...db[user], username: user }; // 載入使用者資料到記憶體
+        updateUserUI();
+        showPage("explore");
+    } else {
+        alert("帳號或密碼錯誤，請重試。(若無帳號請先註冊)");
+    }
+}
+
+// 登出功能
+function performLogout() {
+    currentUserData = null;
+    document.getElementById("loginUser").value = "";
+    document.getElementById("loginPass").value = "";
+    document.getElementById("userStatus").innerText = "";
+    showPage("login");
+}
+
+/* --- 頁面與 UI 邏輯 --- */
+
+function showPage(id){
+  // 若未登入且嘗試訪問非登入頁，強制跳回登入
+  if (!currentUserData && id !== 'login') {
+      alert("請先登入會員以存取學習內容！");
+      showPage('login');
+      return;
+  }
+
+  // 切換頁面顯示
+  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
+  document.getElementById(id).style.display="block";
+  
+  if(id==="explore") renderArticles();
+  if(id==="account") renderAccount();
+  if(id==="chatroom") scrollToBottom();
+  
+  window.scrollTo(0,0);
+}
+
+// 切換登入/註冊模式
+function toggleAuthMode(mode) {
+    document.getElementById("loginForm").style.display = mode === 'login' ? 'block' : 'none';
+    document.getElementById("registerForm").style.display = mode === 'register' ? 'block' : 'none';
+}
+
+// 更新 Header 使用者狀態
+function updateUserUI() {
+    if (currentUserData) {
+        document.getElementById("userStatus").innerText = `歡迎回來, ${currentUserData.username}`;
+    }
+}
+
+/* --- 學習計時與內容邏輯 --- */
+
+// 開啟文章 (開始計時)
+function openArticle(id){
+  currentArticle = articles.find(a=>a.id===id);
+  document.getElementById("detailTitle").innerText = currentArticle.title;
+  document.getElementById("detailContent").innerText = currentArticle.content;
+  
+  renderComments();
+  showPage("detail");
+
+  // 開始學習計時
+  sessionStartTime = Date.now();
+  console.log("開始學習計時...");
+}
+
+// 離開文章 (結算時間並存檔)
+function exitArticle() {
+    if (sessionStartTime > 0 && currentUserData) {
+        const endTime = Date.now();
+        const durationSeconds = Math.floor((endTime - sessionStartTime) / 1000); // 計算秒數
+        
+        // 1. 更新總時數
+        currentUserData.totalLearningSeconds += durationSeconds;
+        
+        // 2. 更新學習檔案 (History)
+        // 檢查是否已經有這篇的紀錄，如果有就更新時間，沒有就新增
+        const existingRecord = currentUserData.learningHistory.find(h => h.articleId === currentArticle.id);
+        
+        const nowStr = new Date().toLocaleString();
+
+        if (existingRecord) {
+            existingRecord.lastAccess = nowStr;
+            existingRecord.timeSpentSeconds += durationSeconds;
+        } else {
+            currentUserData.learningHistory.unshift({
+                articleId: currentArticle.id,
+                title: currentArticle.title,
+                lastAccess: nowStr,
+                timeSpentSeconds: durationSeconds
+            });
+        }
+
+        // 3. 寫回資料庫 (LocalStorage)
+        const db = getUsersDB();
+        // 更新該使用者的資料 (移除 username 欄位因為那是 key)
+        const { username, ...dataToSave } = currentUserData; 
+        db[username] = dataToSave;
+        saveUsersDB(db);
+        
+        console.log(`學習結束，本次持續 ${durationSeconds} 秒`);
+    }
+
+    sessionStartTime = 0; // 重置
+    showPage('explore'); // 返回列表
+}
+
+/* --- 儀表板渲染 (Dashboard) --- */
+
+function renderAccount(){
+    if (!currentUserData) return;
+
+    document.getElementById("accountName").innerText = currentUserData.username;
+    document.getElementById("accountId").innerText = currentUserData.registerDate || "N/A";
+    
+    const history = currentUserData.learningHistory || [];
+    const totalSec = currentUserData.totalLearningSeconds || 0;
+
+    // 數據概覽
+    document.getElementById("readCount").innerText = history.length;
+    document.getElementById("totalTime").innerText = Math.floor(totalSec / 60); // 顯示分鐘
+    document.getElementById("contributionScore").innerText = `Lv. ${currentUserData.contributionLevel}`;
+
+    // 進度條 (假設目標是閱讀 5 篇)
+    const progress = Math.min(100, Math.floor((history.length / 5) * 100));
+    document.getElementById("progressBar").style.width = `${progress}%`;
+    document.getElementById("progressText").innerText = progress;
+
+    // 渲染學習檔案表格
+    const historyBody = document.getElementById("historyList");
+    if(history.length > 0){
+        historyBody.innerHTML = history.map(item => {
+            const mins = Math.floor(item.timeSpentSeconds / 60);
+            const secs = item.timeSpentSeconds % 60;
+            const timeStr = mins > 0 ? `${mins}分${secs}秒` : `${secs}秒`;
+            
+            return `
+            <tr>
+                <td><strong>${item.title}</strong></td>
+                <td style="font-size:12px;">${item.lastAccess.split(' ')[0]}</td>
+                <td><span style="color:#28a745; font-weight:bold;">${timeStr}</span></td>
+            </tr>`;
+        }).join("");
+    } else {
+        historyBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">尚未開始學習，快去瀏覽課程吧！</td></tr>';
+    }
+}
+
+/* --- 渲染文章列表 --- */
+function renderArticles(){
+  const list = document.getElementById("articleList");
+  list.innerHTML="";
+  articles.forEach(a=>{
+    const div=document.createElement("div");
+    div.className="card article-item";
+    div.innerHTML=`
+        <h3>${a.title}</h3>
+        <p class="article-desc">${a.content.substring(0,60).replace(/\n/g, ' ')}...</p>
+        <div style="text-align:right; font-size:13px; color:#007bff;">點擊開始學習 →</div>
+    `;
+    div.onclick = () => openArticle(a.id); 
+    list.appendChild(div);
+  });
+}
+
+/* --- 留言與聊天 --- */
+function renderComments(){
+  const box=document.getElementById("detailComments");
+  box.innerHTML= currentArticle.comments.map((c,i)=>
+    `<div class="comment"><strong>${i+1}樓:</strong> ${c}</div>`
+  ).join("");
+}
+
+function addComment(e){
+  if(e.key==="Enter" && e.target.value){
+    currentArticle.comments.push(`${currentUserData.username}：${e.target.value}`);
+    e.target.value="";
+    renderComments();
+    
+    // 增加貢獻度 (簡單模擬)
+    currentUserData.contributionLevel += 1;
+  }
+}
+
+function sendChat(){
+    const input = document.getElementById("chatInput");
+    if(input.value){
+        const chatBox = document.getElementById("chatBox");
+        chatBox.innerHTML += `<div class="chat-msg my-msg"><strong>${currentUserData.username}:</strong> ${input.value}</div>`;
+        input.value = "";
+        scrollToBottom();
+        setTimeout(() => {
+             chatBox.innerHTML += `<div class="chat-msg"><strong>系統機器人：</strong> 收到您的訊息！</div>`;
+             scrollToBottom();
+        }, 1500);
+    }
+}
+
+function scrollToBottom(){
+    const chatBox = document.getElementById("chatBox");
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// 頁面載入時初始化
+showPage("login"); 
+</script>
+
+</body>
+</html>
